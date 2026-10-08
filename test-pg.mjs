@@ -1,12 +1,20 @@
 import {test,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
+import pg from 'pg';
 const port=25000+Math.floor(Math.random()*15000);
 const base='http://127.0.0.1:'+port;
 const child=spawn(process.execPath,['bootstrap.js'],{env:{...process.env,PORT:String(port)},stdio:['ignore','pipe','pipe']});
 let logs='';child.stderr.on('data',d=>logs+=d.toString());
 after(()=>child.kill());
 async function request(p,method='GET',body,token){const r=await fetch(base+p,{method,headers:{'content-type':'application/json',...(token?{authorization:'Bearer '+token}:{})},body:body?JSON.stringify(body):undefined});return [r.status,await r.json()]}
+test('Majlis schema is isolated from public schema',async()=>{
+ const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+ try{
+ const q=await pool.query("SELECT table_schema,table_name FROM information_schema.tables WHERE table_name IN ('users','rooms','messages','room_members','sessions') AND table_schema='majlis_app'");
+ assert.deepEqual(q.rows.map(x=>x.table_name).sort(),['messages','room_members','rooms','sessions','users']);
+ }finally{await pool.end()}
+});
 test('PostgreSQL health, registration, membership, messages and logout',async()=>{
 let ready=false;for(let i=0;i<100;i++){if(child.exitCode!==null)break;try{const r=await fetch(base+'/healthz');if(r.ok){ready=true;break}}catch{}await new Promise(r=>setTimeout(r,100))}
 assert.ok(ready,'PostgreSQL server failed to start: '+logs);
