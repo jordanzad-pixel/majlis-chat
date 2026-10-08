@@ -18,9 +18,12 @@ const passHash=(password,salt)=>crypto.scryptSync(password,salt,64).toString('he
 const tokenFor=req=>{const h=(req.headers.authorization||'').match(/^Bearer (.+)$/);return h?.[1]};
 const userFor=req=>{const t=tokenFor(req);const session=db.sessions.find(s=>s.hash===hash(t||'')&&s.until>Date.now());return db.users.find(u=>u.id===session?.userId)};
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png'};
+const authAttempts=new Map();
+function authRateLimit(req){const ip=req.socket.remoteAddress||'unknown',now=Date.now();for(const [key,v] of authAttempts)if(now-v.since>15*60*1000)authAttempts.delete(key);let v=authAttempts.get(ip);if(!v){v={since:now,count:0};authAttempts.set(ip,v)}v.count++;return v.count>30}
 const server=http.createServer(async(req,res)=>{const u=new URL(req.url,'http://localhost');const p=u.pathname;
 try{
 if(p==='/healthz')return send(res,200,{ok:true});
+if(req.method==='POST'&&(p==='/api/login'||p==='/api/register')&&authRateLimit(req))return send(res,429,{error:'محاولات كثيرة، حاول لاحقًا'});
 if(p==='/api/register'&&req.method==='POST'){const b=await json(req);const name=String(b.name||'').trim().slice(0,40),email=String(b.email||'').trim().toLowerCase(),password=String(b.password||'');if(!name||!/^\S+@\S+\.\S+$/.test(email)||password.length<10)return send(res,400,{error:'تحقق من البيانات وكلمة المرور (10 أحرف على الأقل)'});if(db.users.some(x=>x.email===email))return send(res,409,{error:'البريد مسجل'});const salt=crypto.randomBytes(16).toString('hex');db.users.push({id:id(),name,email,salt,passwordHash:passHash(password,salt)});save();return send(res,201,{ok:true})}
 if(p==='/api/login'&&req.method==='POST'){const b=await json(req);const user=db.users.find(x=>x.email===String(b.email||'').toLowerCase());if(!user||!crypto.timingSafeEqual(Buffer.from(user.passwordHash,'hex'),Buffer.from(passHash(String(b.password||''),user.salt),'hex')))return send(res,401,{error:'بيانات الدخول غير صحيحة'});const token=crypto.randomBytes(32).toString('hex');db.sessions.push({hash:hash(token),userId:user.id,until:Date.now()+7*86400000});save();return send(res,200,{token,user:{id:user.id,name:user.name}})}
 const user=userFor(req);
