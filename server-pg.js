@@ -7,7 +7,7 @@ import pg from 'pg';
 
 if(!process.env.DATABASE_URL)throw Error('DATABASE_URL required for PostgreSQL mode');
 const {Pool}=pg;
-const pool=new Pool({connectionString:process.env.DATABASE_URL,max:5,connectionTimeoutMillis:10000,ssl:process.env.PGSSL==='require'?{rejectUnauthorized:true}:undefined});
+const pool=new Pool({connectionString:process.env.DATABASE_URL,max:5,connectionTimeoutMillis:10000,options:'-c search_path=majlis_app,pg_catalog',ssl:process.env.PGSSL==='require'?{rejectUnauthorized:true}:undefined});
 const root=path.dirname(fileURLToPath(import.meta.url));
 const port=Number(process.env.PORT||3000);
 const id=()=>crypto.randomUUID();
