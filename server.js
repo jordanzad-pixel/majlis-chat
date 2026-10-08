@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const port=Number(process.env.PORT||3000);
 const dataFile=process.env.MAJLIS_DATA_FILE||path.join(root,'data','db.json');
+if(process.env.NODE_ENV==='production'&&process.env.MAJLIS_ALLOW_JSON_PRODUCTION!=='true'){console.error('Production deployment blocked: configure durable database storage before going live.');process.exit(1)}
 const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
 const id=()=>crypto.randomUUID();
 const empty=()=>({users:[],rooms:[],messages:[],sessions:[]});
