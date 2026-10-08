@@ -12,9 +12,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
       - name: Syntax checks
         run: |
           node --check server.js
+          node --check server-pg.js
+          node --check bootstrap.js
           node --check public/app.js
           node --check public/pwa.js
       - name: Tests
