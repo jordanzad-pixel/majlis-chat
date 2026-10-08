@@ -1,5 +1,8 @@
--- Majlis PostgreSQL schema v1
+-- Majlis PostgreSQL schema v2: isolated from existing public tables
+-- Safe for existing public.rooms / public.messages / public.room_members.
+CREATE SCHEMA IF NOT EXISTS majlis_app;
 BEGIN;
+SET LOCAL search_path TO majlis_app, pg_catalog;
 CREATE TABLE IF NOT EXISTS users (
  id uuid PRIMARY KEY,
  name varchar(40) NOT NULL,
