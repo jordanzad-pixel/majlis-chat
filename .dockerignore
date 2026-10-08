@@ -1,0 +1,12 @@
+node_modules
+.git
+.env
+.env.*
+!.env.example
+data/*
+!data/.gitkeep
+*.db
+*.sqlite
+*.log
+mobile
+*.zip
